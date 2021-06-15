@@ -8,6 +8,7 @@ int Disassemble(unsigned char *buff, int pc)
 {
     unsigned char *opcode = &buff[pc]; /* pointer used for multiple bytes */
     int bytesUsed = 1;
+    printf("%04x ", pc);
     switch (*opcode)
     {
         case 0x00: printf("NOP"); break;
@@ -273,9 +274,19 @@ int Disassemble(unsigned char *buff, int pc)
     return bytesUsed;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    FILE *fp = fopen("../../rom/invaders.h", "r");
+    if(argc < 2)
+    {
+        printf("Enter a file to decompile");
+        return -1;
+    }
+
+    char filename[11+strlen(argv[1])];
+    strcpy(filename, "../../rom/");
+    strcat(filename, argv[1]);
+
+    FILE *fp = fopen(filename, "r");
     if(!fp)
     {
         printf("Could not open binary file\n");
@@ -289,7 +300,6 @@ int main(void)
     }
 
     const int len = ftell(fp);
-    printf("length: %d\n", len);
     fseek(fp, 0, SEEK_SET);
     unsigned char buffer[len];
     for (int i = 0; i < len; i++)
@@ -305,3 +315,4 @@ int main(void)
     }
     return 0;
 }
+            uint16_t answer = (uint16_t) state->a + (uint16_t) opcode[1];    
