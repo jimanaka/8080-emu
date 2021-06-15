@@ -36,6 +36,7 @@ void UnimplementedIns(State *state)
 
 int EmulateCPU(State *state)
 {
+    unsigned char *opcode = &state->memory[state->pc];
     return 0;
 }
 
