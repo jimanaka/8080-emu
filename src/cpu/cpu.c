@@ -30,7 +30,7 @@ typedef struct State
 
 void UnimplementedIns(State *state)
 {
-    printf("Instruction not implemented yet");
+    printf("Instruction not implemented yet\n");
     exit(1);
 }
 
@@ -328,10 +328,10 @@ int EmulateCPU(State *state)
         default: UnimplementedIns(state);
     }
 
-    printf("state{\n"
-        "\tFlags: z: %d, s: %d, p: %d, cy: %d, ac: %d\n"
-        "\tregisters: a: %02x, b: %02x, c: %02x, d: %02x, e: %02x, h: %02x, l: %02x sp: %02x\n"
-        "}\n", state->flags.z, state->flags.s, state->flags.p, state->flags.cy, state->flags.ac, state->a, state->b, state->c, state->d, state->e, state->h, state->l, state->sp);
+    printf("%02x, state{\n"
+        "\t\tFlags: z: %d, s: %d, p: %d, cy: %d, ac: %d\n"
+        "\t\tregisters: a: %02x, b: %02x, c: %02x, d: %02x, e: %02x, h: %02x, l: %02x sp: %02x\n"
+        "\t}\n", opcode[0], state->flags.z, state->flags.s, state->flags.p, state->flags.cy, state->flags.ac, state->a, state->b, state->c, state->d, state->e, state->h, state->l, state->sp);
 
     return bytesUsed;
 }
@@ -349,9 +349,8 @@ int main(void)
     LoadBinary(state, "invaders.h", 0);
     LoadBinary(state, "invaders.g", 0x800);
     LoadBinary(state, "invaders.f", 0x1000);
-    //for some reason cannot open invaders.e? DO THIS LATER :D
-    //LoadBinary(state, "invanders.e", 0x1800);
-    while(state->pc < 2048)
+    LoadBinary(state, "invaders.e", 0x1800);
+    while(1)
     {
         EmulateCPU(state);
     }
