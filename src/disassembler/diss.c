@@ -315,4 +315,3 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-            uint16_t answer = (uint16_t) state->a + (uint16_t) opcode[1];    
