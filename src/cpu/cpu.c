@@ -28,6 +28,24 @@ typedef struct State
     uint8_t     int_enable;
 } State;
 
+int parity(int x, int size)
+{
+    int i, count = 0, b = 1;
+    for (i = 0; i < size; i++)
+    {
+        if(x & (b << i))
+        {
+            count++;
+        }
+    }
+    if (count%2)
+    {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 void UnimplementedIns(State *state)
 {
     printf("Instruction not implemented yet\n");
@@ -69,12 +87,25 @@ int EmulateCPU(State *state)
     switch (*opcode)
     {
         case 0x00: break; //NOP
-        case 0x01: UnimplementedIns(state); bytesUsed=3; break;
+        case 0x01: 
+                   state->c = opcode[2];
+                   state->b = opcode[3];
+                   state->pc += 2;
+                   break;
         case 0x02: UnimplementedIns(state); break;
         case 0x03: UnimplementedIns(state); break;
         case 0x04: UnimplementedIns(state); break;
-        case 0x05: UnimplementedIns(state); break;
-        case 0x06: UnimplementedIns(state); bytesUsed=2; break;
+        case 0x05: 
+                   uint8_t temp = state->b -1;
+                   state->flags.z = (res == 0);
+                   state->flags.s = (0x80 == (temp & 0x80));
+                   state->flags.p = parity(res, 8);
+                   state->b = res;
+                   break;
+        case 0x06:
+                   state->b = opcode[1];
+                   state->pc++;
+                   break;
         case 0x07: UnimplementedIns(state); break;
         case 0x08: UnimplementedIns(state); break;
         case 0x09: UnimplementedIns(state); break;
