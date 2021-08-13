@@ -134,7 +134,7 @@ int EmulateCPU(State *state)
         uint32_t bc = (state->b << 8) | state->c;
         uint32_t temp = hl + bc;
         state->h = temp & (0xff00) >> 8; //
-        state->l = temp & 0x00ff;
+        state->l = temp & 0xff;
         state->flags.cy = ((temp & 0xffff0000) > 0); //if there are any 1's in higher 16, then set carry flag
     }
     break;
@@ -165,20 +165,36 @@ int EmulateCPU(State *state)
         }
         break;
     case 0x0f:
-        UnimplementedIns(state);
+        {
+            //Rotate A right
+            uint8_t temp = state->a;
+            state->a = (temp & 0x1) << 7;
+            state->a = state->a | (temp >> 1);
+            state->flags.cy = (1 == (temp & 0x1));
+        }
         break;
     case 0x10:
         UnimplementedIns(state);
         break;
     case 0x11:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //Load immediate register LXI
+            state->e = opcode[1];
+            state->d = opcode[2];
+            state->pc += 2;
+        }
         break;
     case 0x12:
         UnimplementedIns(state);
         break;
     case 0x13:
-        UnimplementedIns(state);
+        {
+            //Increment d and e registers
+            uint16_t temp = ((state->d << 8) | (state->e));
+            temp++;
+            state->d = ((temp & 0xff00) >> 8);
+            state->e = ((temp & 0xff));
+        }
         break;
     case 0x14:
         UnimplementedIns(state);
@@ -197,10 +213,21 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x19:
-        UnimplementedIns(state);
+        {
+            uint32_t hl = ((state->h) << 8) | (state->h);
+            uint32_t de = ((state->d) << 8) | (state->e);
+            uint32_t temp = hl + de;
+            state->h = (temp & 0xff00) >> 8;
+            state->l = (temp & 0xff);
+            state->flags.cy = ((temp & 0xffff0000) > 0);
+        }
         break;
     case 0x1a:
-        UnimplementedIns(state);
+        {
+            //Load A indirect
+            uint16_t temp = ((state->d) << 8) | (state->e);
+            state->a = state->memory[temp];
+        }
         break;
     case 0x1b:
         UnimplementedIns(state);
@@ -222,24 +249,38 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x21:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //Load register pair HL
+            state->l = opcode[1];
+            state->h = opcode[2];
+            state->pc+=2;
+        }
         break;
     case 0x22:
         UnimplementedIns(state);
         bytesUsed = 3;
         break;
     case 0x23:
-        UnimplementedIns(state);
+        {
+            //increment H and L
+            uint16_t temp = (state->h << 8) | (state->l);
+            temp++;
+            state->h = (temp & 0xff00) >> 8;
+            state->l = (temp&0xff);
+        }
         break;
     case 0x24:
-        UnimplementedIns(state);
+        UniplementedIns(state);
         break;
     case 0x25:
         UnimplementedIns(state);
         break;
     case 0x26:
-        UnimplementedIns(state);
+        {
+            //Move Immediate H
+            state->h = opcode[1];
+            state->pc++;
+        }
         bytesUsed = 2;
         break;
     case 0x27:
@@ -249,7 +290,14 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x29:
-        UnimplementedIns(state);
+        {
+            //Add HL to HL
+            uint32_t hl = (state->h << 8) | (state->l);
+            uint32_t temp = hl + hl;
+            state->h = (temp & 0xff00) >> 8;
+            state->l = (temp & 0xff);
+            state->flags.cy = ((temp & 0xffff0000) > 0);
+        }
         break;
     case 0x2a:
         UnimplementedIns(state);
@@ -275,12 +323,19 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x31:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //Load immediate stack pionter
+            state->sp = (opcode[2] << 8) | (opcode[1]);
+            state->pc += 2;
+        }
         break;
     case 0x32:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //store A direct
+            uint16_t temp = (opcode[2]<<8) | (opcode[1]);
+            state->memory[temp] = state->a;
+            state->pc += 2;
+        }
         break;
     case 0x33:
         UnimplementedIns(state);
@@ -292,8 +347,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x36:
-        UnimplementedIns(state);
-        bytesUsed = 2;
+        {
+            uint16_t temp = (state->h << 8) | (state->l);
+            state->memory[temp] = opcode[1];
+            state->pc++;
+        }
         break;
     case 0x37:
         UnimplementedIns(state);
@@ -304,8 +362,12 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x3a:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //load A direct
+            uint16_t temp = (opcode[2] << 8) | (opcode[1]);
+            state->a = state->memory[temp];
+            state->pc += 2;
+        }
         break;
     case 0x3b:
         UnimplementedIns(state);
@@ -317,8 +379,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x3e:
-        UnimplementedIns(state);
-        bytesUsed = 2;
+        {
+            //Move immediate register A
+            state->a = opcode[1];
+            state->pc++;
+        }
         break;
     case 0x3f:
         UnimplementedIns(state);
@@ -390,7 +455,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x56:
-        UnimplementedIns(state);
+        {
+            //move memory (HL) to register D
+            uint16_t temp = (state->h << 8) | (state->l);
+            state->d = state->memory[temp];
+        }
         break;
     case 0x57:
         UnimplementedIns(state);
@@ -414,7 +483,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x5e:
-        UnimplementedIns(state);
+        {
+            //move memory (HL) to register E MOVE E,M
+            uint16_t temp = (state->h << 8) | (state->l);
+            state->e = state->memory[temp];
+        }
         break;
     case 0x5f:
         UnimplementedIns(state);
@@ -465,7 +538,10 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x6f:
-        UnimplementedIns(state);
+        {
+            //move reg. A to L MOV L,A
+            state->l = state->a;
+        }
         break;
     case 0x70:
         UnimplementedIns(state);
@@ -489,7 +565,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x77:
-        UnimplementedIns(state);
+        {
+            //Move reg. A to memory (HL) MOV M,A
+            uint16_t temp = (state->h << 8) | (state->l);
+            state->memory[temp] = state->a;
+        }
         break;
     case 0x78:
         UnimplementedIns(state);
@@ -510,7 +590,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x7e:
-        UnimplementedIns(state);
+        {
+            //move mem. (HL) to reg. A MOV A,M
+            uint16_t temp = (state->h << 8) | (state->l);
+            state->a = state->memory[temp];
+        }
         break;
     case 0x7f:
         UnimplementedIns(state);
@@ -633,7 +717,15 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xa7:
-        UnimplementedIns(state);
+        {
+            //and with reg. A ANA A
+            state->a = state->a & state->a;
+            state->flags.cy = 0;
+            state->flags.ac = 0;
+            state->flags.z = (state->a == 0);
+            state->flags.p = parity(state->a, 8);
+            state->flags.s = (0x80 == (state->a & 0x80));
+        }
         break;
     case 0xa8:
         UnimplementedIns(state);
@@ -657,7 +749,14 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xaf:
-        UnimplementedIns(state);
+        {
+            //exclusiv or with A XRA A
+            state->a = state->a ^ state->a;
+            state->flags.z = (state->a == 0);
+            state->flags.s = (0x80 == (state->a & 0x80));
+            state->flags.p = parity(state->a, 8);
+            state->flags.cy = state->flags.ac = 0;
+        }
         break;
     case 0xb0:
         UnimplementedIns(state);
@@ -711,26 +810,55 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xc1:
-        UnimplementedIns(state);
+        {
+            //POP B
+            state->c = state->memory[state->sp];
+            state->b = state->memory[state->sp + 1];
+            state->sp += 2;
+        }
         break;
     case 0xc2:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //jump on no zero JNZ adr
+            if (state->flags.z == 0)
+            {
+                state->pc = (opcode[2] << 8) | (opcode[1]);
+                
+            } else {
+                state->pc += 2;
+            }
+        }
         break;
     case 0xc3:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //Jump addr JMP adr
+            state->pc = (opcode[2] << 8) | (opcode[1]);
+        }
         break;
     case 0xc4:
         UnimplementedIns(state);
         bytesUsed = 3;
         break;
     case 0xc5:
-        UnimplementedIns(state);
+        {
+            //PUSH B
+            state->memory[state->sp - 2] = state->c;
+            state->memory[state->sp - 1] = state->b;
+            state->sp = state->sp - 2;
+        }
         break;
     case 0xc6:
-        UnimplementedIns(state);
-        bytesUsed = 2;
+        {
+            //add A D8 ADI D8
+            uint16_t temp = (uint16_t) state->a + (uint16_t) opcode[1];
+            state->flags.z = ((temp & 0xff) == 0);
+            state->flags.s = ((temp & 0x80) == 0x80);
+            state->flags.p = parity((temp & 0xff), 8);
+            state->flags.cy = ((temp & 0xff00) > 0);
+            //state->flags.ac = state->flags.cy;
+            state->a = (uint8_t) temp;
+            state->pc++;
+        }
         break;
     case 0xc7:
         UnimplementedIns(state);
@@ -739,7 +867,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xc9:
-        UnimplementedIns(state);
+        {
+            //RET
+            state->pc = (state->memory[state->sp + 1] << 8) | (state->memory[state->sp]);
+            state->sp += 2;
+        }
         break;
     case 0xca:
         UnimplementedIns(state);
@@ -753,8 +885,14 @@ int EmulateCPU(State *state)
         bytesUsed = 3;
         break;
     case 0xcd:
-        UnimplementedIns(state);
-        bytesUsed = 3;
+        {
+            //CALL adr (may need to do pc+2???)
+            state->memory[state->sp -1] = ((state->pc >> 8) & 0xff);
+            state->memory[state->sp - 2] = (state->pc & 0xff);
+            state->sp = state->sp - 2;
+            state->pc = (opcode[2] << 8) | (opcode[1]);
+
+        }
         break;
     case 0xce:
         UnimplementedIns(state);
@@ -767,7 +905,12 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xd1:
-        UnimplementedIns(state);
+        {
+            //POP D
+            state->e = state->memory[state->sp];
+            state->d = state->memory[state->sp + 1];
+            state->sp += 2;
+        }
         break;
     case 0xd2:
         UnimplementedIns(state);
@@ -932,10 +1075,11 @@ int EmulateCPU(State *state)
     }
 
     printf("%02x, state{\n"
+            "\t\tpc: %d\n"
            "\t\tFlags: z: %d, s: %d, p: %d, cy: %d, ac: %d\n"
            "\t\tregisters: a: %02x, b: %02x, c: %02x, d: %02x, e: %02x, h: %02x, l: %02x sp: %02x\n"
            "\t}\n",
-           opcode[0], state->flags.z, state->flags.s, state->flags.p, state->flags.cy, state->flags.ac, state->a, state->b, state->c, state->d, state->e, state->h, state->l, state->sp);
+           opcode[0], state->pc, state->flags.z, state->flags.s, state->flags.p, state->flags.cy, state->flags.ac, state->a, state->b, state->c, state->d, state->e, state->h, state->l, state->sp);
 
     return bytesUsed;
 }
