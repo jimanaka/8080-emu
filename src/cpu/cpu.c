@@ -270,7 +270,7 @@ int EmulateCPU(State *state)
         }
         break;
     case 0x24:
-        UniplementedIns(state);
+        UnimplementedIns(state);
         break;
     case 0x25:
         UnimplementedIns(state);
@@ -887,6 +887,7 @@ int EmulateCPU(State *state)
     case 0xcd:
         {
             //CALL adr (may need to do pc+2???)
+            state->pc += 2; // pc+=2 b/c push instruction after the og call
             state->memory[state->sp -1] = ((state->pc >> 8) & 0xff);
             state->memory[state->sp - 2] = (state->pc & 0xff);
             state->sp = state->sp - 2;
@@ -917,15 +918,22 @@ int EmulateCPU(State *state)
         bytesUsed = 3;
         break;
     case 0xd3:
-        UnimplementedIns(state);
-        bytesUsed = 2;
+        {
+            //OUT speical.  Do nothing? Looked at github code but just found an increment for pc.  look at data sheet to fix
+            state->pc++;
+        }
         break;
     case 0xd4:
         UnimplementedIns(state);
         bytesUsed = 3;
         break;
     case 0xd5:
-        UnimplementedIns(state);
+        {
+            //push D
+            state->memory[state->sp-2] = state->e;
+            state->memory[state->sp-1] = state->d;
+            state->sp -= 2;
+        }
         break;
     case 0xd6:
         UnimplementedIns(state);
@@ -966,7 +974,12 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xe1:
-        UnimplementedIns(state);
+        {
+            //POP H
+            state->l = state->memory[state->sp];
+            state->h = state->memory[state->sp + 1];
+            state->sp += 2;
+        }
         break;
     case 0xe2:
         UnimplementedIns(state);
@@ -980,11 +993,23 @@ int EmulateCPU(State *state)
         bytesUsed = 3;
         break;
     case 0xe5:
-        UnimplementedIns(state);
+        {
+            //PUSH H
+            state->memory[state->sp - 2] = state->l;
+            state->memory[state->sp -1] = state->h;
+            state->sp -= 2;
+        }
         break;
     case 0xe6:
-        UnimplementedIns(state);
-        bytesUsed = 2;
+        {
+            //AND immediate with A ANI D8
+            state-> a = state->a & opcode[1];
+            state->flags.z = (state->a == 0);
+            state->flags.s = ((state->a & 0x80) == 0x80);
+            state->flags.p = parity(state->a, 8);
+            state->flags.cy = state->flags.ac = 0;
+            state->pc++;
+        }
         break;
     case 0xe7:
         UnimplementedIns(state);
@@ -1000,7 +1025,15 @@ int EmulateCPU(State *state)
         bytesUsed = 3;
         break;
     case 0xeb:
-        UnimplementedIns(state);
+        {
+            //exchange DE and HL reg.
+            uint8_t temp = state->h;
+            state->h = state->d;
+            state->d = temp;
+            temp = state->l;
+            state->l = state->e;
+            state->e = temp;
+        }
         break;
     case 0xec:
         UnimplementedIns(state);
@@ -1020,7 +1053,18 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xf1:
-        UnimplementedIns(state);
+        {
+            //POP PSW
+            state->a = state->memory[state->sp + 1];
+            uint8_t psw = state->memory[state->sp];
+            state->flags.z = ((psw & 0x01) & 0x01);
+            state->flags.s = ((psw & 0x02) & 0x02);
+            state->flags.p = ((psw & 0x03) & 0x03);
+            state->flags.cy = ((psw & 0x04) & 0x04);
+            state->flags.ac = ((psw & 0x05) & 0x05);
+            state->sp += 2;
+
+        }
     case 0xf2:
         UnimplementedIns(state);
         bytesUsed = 3;
@@ -1033,7 +1077,13 @@ int EmulateCPU(State *state)
         bytesUsed = 3;
         break;
     case 0xf5:
-        UnimplementedIns(state);
+        {
+            //PUSH PSW
+            state->memory[state->sp - 1] = state->a;
+            uint8_t psw = (state->flags.z | state->flags.s << 1 | state->flags.p << 2 | state->flags.cy << 3 | state->flags.ac << 4);
+            state->memory[state->sp-2] = psw;
+            state->sp -= 2;
+        }
         break;
     case 0xf6:
         UnimplementedIns(state);
@@ -1063,8 +1113,16 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0xfe:
-        UnimplementedIns(state);
-        bytesUsed = 2;
+        {
+            //compare immediate with A
+            uint8_t temp = state->a - opcode[1];
+            state->flags.z = (temp == 0);
+            state->flags.s = ((temp & 0x80) == 0x80);
+            state->flags.p = parity(temp, 8);
+            state->flags.cy = (state->a < opcode[1]);
+            //state->flags.ac = ??
+            state->pc++;
+        }
         break;
     case 0xff:
         UnimplementedIns(state);
