@@ -109,10 +109,10 @@ int EmulateCPU(State *state)
     case 0x05:
     {
         uint8_t temp = state->b - 1;
-        state->flags.z = (res == 0);
+        state->flags.z = (temp == 0);
         state->flags.s = (0x80 == (temp & 0x80)); //check if sig bit is set
-        state->flags.p = parity(res, 8);
-        state->b = res;
+        state->flags.p = parity(temp, 8);
+        state->b = temp;
     }
     break;
     case 0x06:
@@ -150,7 +150,7 @@ int EmulateCPU(State *state)
     case 0x0d:
         {
             //DCR C
-            uint8_t temp = state->flags->c - 1;
+            uint8_t temp = state->c - 1;
             state->flags.z = (temp == 0);
             state->flags.s = (0x80 == (temp & 0x80));
             state->flags.p = parity(temp, 8);
