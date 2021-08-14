@@ -84,16 +84,16 @@ int EmulateCPU(State *state)
 {
     unsigned char *opcode = &state->memory[state->pc];
     int bytesUsed = 1;
+    printf("%04x ", state->pc); 
     state->pc++;
-    printf("%04x ", state->pc);
     switch (*opcode)
     {
     case 0x00:
         break; //NOP
     case 0x01:
     {
-        state->c = opcode[2];
-        state->b = opcode[3];
+        state->c = opcode[1];
+        state->b = opcode[2];
         state->pc += 2;
     }
     break;
@@ -170,7 +170,7 @@ int EmulateCPU(State *state)
             uint8_t temp = state->a;
             state->a = (temp & 0x1) << 7;
             state->a = state->a | (temp >> 1);
-            state->flags.cy = (1 == (temp & 0x1));
+            state->flags.cy = (1 == (temp & 1));
         }
         break;
     case 0x10:
@@ -190,10 +190,8 @@ int EmulateCPU(State *state)
     case 0x13:
         {
             //Increment d and e registers
-            uint16_t temp = ((state->d << 8) | (state->e));
-            temp++;
-            state->d = ((temp & 0xff00) >> 8);
-            state->e = ((temp & 0xff));
+            state->e++;
+            if (state->e == 0) state->d++;
         }
         break;
     case 0x14:
@@ -263,10 +261,8 @@ int EmulateCPU(State *state)
     case 0x23:
         {
             //increment H and L
-            uint16_t temp = (state->h << 8) | (state->l);
-            temp++;
-            state->h = (temp & 0xff00) >> 8;
-            state->l = (temp&0xff);
+            state->l++;
+            if (state->l == 0) state->h++;
         }
         break;
     case 0x24:
@@ -511,7 +507,11 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x66:
-        UnimplementedIns(state);
+        {
+            //MOV mem HL to reg h MOV H,M
+            uint16_t temp = (state->h << 8) | (state->l);
+            state->h = state->memory[temp];
+        }
         break;
     case 0x67:
         UnimplementedIns(state);
@@ -578,13 +578,16 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
         break;
     case 0x7a:
-        UnimplementedIns(state);
+        //MOV A,D
+        state->a = state->d;
         break;
     case 0x7b:
-        UnimplementedIns(state);
+        //MOV A,E
+        state->a = state->e;
         break;
     case 0x7c:
-        UnimplementedIns(state);
+        //MOV A,H
+        state->a = state->h;
         break;
     case 0x7d:
         UnimplementedIns(state);
@@ -1103,7 +1106,8 @@ int EmulateCPU(State *state)
         bytesUsed = 3;
         break;
     case 0xfb:
-        UnimplementedIns(state);
+        //enable interrupt EI
+        state->int_enable = 1;
         break;
     case 0xfc:
         UnimplementedIns(state);
@@ -1132,12 +1136,9 @@ int EmulateCPU(State *state)
         UnimplementedIns(state);
     }
 
-    printf("%02x, state{\n"
-            "\t\tpc: %d\n"
-           "\t\tFlags: z: %d, s: %d, p: %d, cy: %d, ac: %d\n"
-           "\t\tregisters: a: %02x, b: %02x, c: %02x, d: %02x, e: %02x, h: %02x, l: %02x sp: %02x\n"
-           "\t}\n",
-           opcode[0], state->pc, state->flags.z, state->flags.s, state->flags.p, state->flags.cy, state->flags.ac, state->a, state->b, state->c, state->d, state->e, state->h, state->l, state->sp);
+    printf("z: %d, s: %d, p: %d, cy: %d, ac: %d"
+           "\tA: %02x, B: %02x, C: %02x, D: %02x, E: %02x,H: %02x, L: %02x SP: %02x\n",
+           state->flags.z, state->flags.s, state->flags.p, state->flags.cy, state->flags.ac, state->a, state->b, state->c, state->d, state->e, state->h, state->l, state->sp);
 
     return bytesUsed;
 }
